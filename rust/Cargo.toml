@@ -7,4 +7,9 @@ edition = "2021"
 name = "ex1_2024"
 path = "./ex1-2024/src/main.rs"
 
+[[bin]]
+name = "ex2_2024"
+path = "./ex2-2024/src/main.rs"
+
+
 [dependencies]
