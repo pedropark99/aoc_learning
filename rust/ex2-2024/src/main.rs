@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::fs;
 
 fn read_input() -> Vec<Vec<i32>> {
@@ -24,108 +25,35 @@ fn read_input() -> Vec<Vec<i32>> {
     return levels;
 }
 
-fn is_sorted_even(vec: &Vec<i32>) -> bool {
-    let mut index = 0;
-    if vec[0] < vec[index] {
-        while index < vec.len() {
-            if vec[index] > vec[index + 1] {
-                return false;
-            }
-            index += 2;
-        }
-    } else {
-        while index < vec.len() {
-            if vec[index] < vec[index + 1] {
-                return false;
-            }
-            index += 2;
-        }
-    }
-    return true;
-}
-fn is_sorted_odd(vec: &Vec<i32>) -> bool {
-    let mut index: usize = 0;
-    if vec[0] < vec[index] {
-        while index < vec.len() {
-            if index == vec.len() - 1 {
-                if vec[index - 1] > vec[index] {
-                    return false;
-                }
-                break;
-            }
-            if vec[index] > vec[index + 1] {
-                return false;
-            }
-            index += 2;
-        }
-    } else {
-        while index < vec.len() {
-            if index == vec.len() - 1 {
-                if vec[index - 1] < vec[index] {
-                    return false;
-                }
-                break;
-            }
-            if vec[index] < vec[index + 1] {
-                return false;
-            }
-            index += 2;
-        }
-    }
-    return true;
+enum Direction {
+    Increasing,
+    Decreasing,
 }
 
-fn is_sorted(vec: &Vec<i32>) -> bool {
-    let len = vec.len();
-    if len - 1 <= 1 {
-        return true;
+fn is_good(levels: &Vec<i32>) -> bool {
+    let mut direction = Direction::Increasing;
+    if levels[0] > levels[levels.len() - 1] {
+        direction = Direction::Decreasing;
     }
-
-    if len % 2 == 0 {
-        return is_sorted_even(&vec);
-    } else {
-        return is_sorted_odd(&vec);
-    }
-}
-
-fn check_diff(levels: &Vec<i32>) -> bool {
-    if levels.len() % 2 == 0 {
-        return check_diff_even(&levels);
-    } else {
-        return check_diff_odd(&levels);
-    }
-}
-
-fn check_diff_even(levels: &Vec<i32>) -> bool {
-    let mut index = 0;
-    while index < levels.len() - 1 {
-        let diff = (levels[index] - levels[index + 1]).abs();
-        if (diff < 1) || (diff > 3) {
+    for (v1, v2) in levels.iter().tuple_windows() {
+        let diff: i32 = (v1 - v2).abs();
+        if (diff < 1) | (diff > 3) {
             return false;
         }
-        index += 2;
+        match direction {
+            Direction::Increasing => {
+                if v1 > v2 {
+                    return false;
+                }
+            }
+            Direction::Decreasing => {
+                if v1 < v2 {
+                    return false;
+                }
+            }
+        }
     }
-    return true;
-}
 
-fn check_diff_odd(levels: &Vec<i32>) -> bool {
-    let mut v1: i32 = 0;
-    let mut v2: i32 = 0;
-    let mut index = 0;
-    while index < levels.len() - 1 {
-        if index == levels.len() {
-            v1 = levels[index - 1];
-            v2 = levels[index];
-        } else {
-            v1 = levels[index];
-            v2 = levels[index + 1];
-        }
-        let diff = (v1 - v2).abs();
-        if (diff < 1) || (diff > 3) {
-            return false;
-        }
-        index += 2;
-    }
     return true;
 }
 
@@ -133,10 +61,9 @@ fn main() {
     let input = read_input();
     let mut safe_count: usize = 0;
     for levels in input {
-        if !is_sorted(&levels) | !check_diff(&levels) {
-            continue;
+        if is_good(&levels) {
+            safe_count += 1;
         }
-        safe_count += 1;
     }
 
     println!("Safe count: {}", safe_count);

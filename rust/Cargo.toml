@@ -13,3 +13,4 @@ path = "./ex2-2024/src/main.rs"
 
 
 [dependencies]
+itertools = "0.14.0"
