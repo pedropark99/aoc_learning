@@ -1,9 +1,9 @@
-use std::fs;
+use std::{fs, io::BufRead};
 // ;({where()+'what()mul(445,324)#what()select()(+mul(430,603)
 
 struct MultiplyOp {
-    left_operand: i32,
-    right_operand: i32,
+    left_operand: u64,
+    right_operand: u64,
 }
 
 #[derive(Clone)]
@@ -16,43 +16,6 @@ enum State {
     StNum,
     StCom,
     StSuccessMatch,
-}
-
-fn get_transitions(state: &State) -> Vec<State> {
-    match state {
-        State::StM => {
-            let states = vec![State::StU];
-            return states;
-        }
-        State::StU => {
-            let states = vec![State::StL];
-            return states;
-        }
-        State::StL => {
-            let states = vec![State::StParOpen];
-            return states;
-        }
-        State::StParOpen => {
-            let states = vec![State::StNum];
-            return states;
-        }
-        State::StParClose => {
-            let states = vec![State::StSuccessMatch];
-            return states;
-        }
-        State::StNum => {
-            let states = vec![State::StNum, State::StCom, State::StParClose];
-            return states;
-        }
-        State::StCom => {
-            let states = vec![State::StNum];
-            return states;
-        }
-        State::StSuccessMatch => {
-            let states = vec![State::StM];
-            return states;
-        }
-    }
 }
 
 fn is_transition_possible(input: &Vec<u8>, idx: usize, state: State) -> (bool, State) {
@@ -127,9 +90,25 @@ fn try_find_end_index(input: &Vec<u8>, idx: usize, state: &State) -> Result<usiz
     return Err("Unable to find end index.");
 }
 
+fn parse_multipliers(input: &[u8]) -> MultiplyOp {
+    let mut comma_index: usize = 0;
+    for chr in input {
+        if *chr == b',' {
+            break;
+        }
+        comma_index += 1;
+    }
+
+    let left_op = String::from_utf8((input[0..comma_index]).to_vec()).unwrap();
+    let right_op = String::from_utf8((input[(comma_index + 1)..]).to_vec()).unwrap();
+    return MultiplyOp {
+        left_operand: left_op.parse::<u64>().unwrap(),
+        right_operand: right_op.parse::<u64>().unwrap(),
+    };
+}
+
 fn parse_input(input: Vec<u8>) -> Vec<MultiplyOp> {
-    let multipliers: Vec<MultiplyOp> = Vec::new();
-    // let mut components: Vec<u8> = Vec::new();
+    let mut multipliers: Vec<MultiplyOp> = Vec::new();
     let mut index: usize = 0;
     for chr in &input {
         if *chr != b'm' {
@@ -141,7 +120,7 @@ fn parse_input(input: Vec<u8>) -> Vec<MultiplyOp> {
         let end_index = try_find_end_index(&input, index, &state);
         match end_index {
             Ok(idx) => {
-                println!("Found end index: {idx:?}");
+                multipliers.push(parse_multipliers(&input[(index + 4)..idx]));
                 index += 1;
             }
             Err(_) => {
@@ -156,6 +135,12 @@ fn parse_input(input: Vec<u8>) -> Vec<MultiplyOp> {
 fn main() {
     const PATH: &str = "ex3-2024/src/input.txt";
     let input_text = fs::read_to_string(PATH).expect("File not found!");
-    parse_input(input_text.as_bytes().to_vec());
-    println!("Hello, world!");
+    let multipliers = parse_input(input_text.as_bytes().to_vec());
+
+    let mut total_value: u64 = 0;
+    for mult in multipliers {
+        total_value += mult.left_operand * mult.right_operand;
+    }
+
+    println!("Total value: {}", total_value);
 }
