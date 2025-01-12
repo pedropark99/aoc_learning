@@ -5,6 +5,7 @@ struct MultiplyOp {
     right_operand: i32,
 }
 
+#[derive(Clone)]
 enum State {
     StM,
     StU,
@@ -53,64 +54,75 @@ fn get_transitions(state: &State) -> Vec<State> {
     }
 }
 
-fn is_transition_possible(input: &Vec<u8>, idx: usize, transition: &State) -> bool {
+fn is_transition_possible(input: &Vec<u8>, idx: usize, state: State) -> (bool, State) {
     let next_chr = input[idx + 1];
-    match transition {
+    match state {
         State::StM => {
             if next_chr == b'u' {
-                return true;
+                return (true, State::StU);
             }
-            return false;
+            return (false, State::StU);
         }
         State::StU => {
             if next_chr == b'l' {
-                return true;
+                return (true, State::StL);
             }
-            return false;
+            return (false, State::StL);
         }
         State::StL => {
             if next_chr == b'(' {
-                return true;
+                return (true, State::StParOpen);
             }
-            return false;
+            return (false, State::StParOpen);
         }
         State::StParOpen => {
             let nums = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9'];
             if nums.contains(&next_chr) {
-                return true;
+                return (true, State::StNum);
             }
-            return false;
+            return (false, State::StNum);
         }
         State::StNum => {
             let nums = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9'];
-            if (nums.contains(&next_chr)) | (next_chr == b',') {
-                return true;
+            if nums.contains(&next_chr) {
+                return (true, State::StNum);
             }
-            return false;
+            if next_chr == b',' {
+                return (true, State::StCom);
+            }
+            if next_chr == b')' {
+                return (true, State::StParClose);
+            }
+
+            return (false, State::StNum);
         }
         State::StCom => {
             let nums = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9'];
             if nums.contains(&next_chr) {
-                return true;
+                return (true, State::StNum);
             }
-            return false;
+            return (false, State::StNum);
         }
         State::StParClose | State::StSuccessMatch => {
-            return true;
+            return (true, State::StNum);
         }
     }
 }
 
 fn try_find_end_index(input: &Vec<u8>, idx: usize, state: &State) -> Result<usize, &'static str> {
-    for transition in get_transitions(state) {
-        if (is_transition_possible(input, idx, &transition)) & matches!(state, State::StParClose) {
-            // End index found! Success!
-            return Ok(idx);
-        }
-        if is_transition_possible(input, idx, &transition) {
-            return try_find_end_index(input, idx + 1, &transition);
-        }
+    let result = is_transition_possible(input, idx, state.clone());
+    let is_possible = result.0;
+    let target_transition = result.1;
+
+    if (is_possible) & (matches!(state, State::StParClose)) {
+        // End index found! Success!
+        return Ok(idx);
     }
+
+    if is_possible {
+        return try_find_end_index(input, idx + 1, &target_transition);
+    }
+
     return Err("Unable to find end index.");
 }
 
