@@ -1,4 +1,5 @@
 use std::fs;
+// ;({where()+'what()mul(445,324)#what()select()(+mul(430,603)
 
 struct MultiplyOp {
     left_operand: i32,
@@ -139,8 +140,12 @@ fn parse_input(input: Vec<u8>) -> Vec<MultiplyOp> {
         let state = State::StM;
         let end_index = try_find_end_index(&input, index, &state);
         match end_index {
-            Ok(idx) => println!("Found end index: {idx:?}"),
+            Ok(idx) => {
+                println!("Found end index: {idx:?}");
+                index += 1;
+            }
             Err(_) => {
+                index += 1;
                 continue;
             }
         }
