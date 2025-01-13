@@ -1,4 +1,4 @@
-use std::{fs, io::BufRead};
+use std::fs;
 // ;({where()+'what()mul(445,324)#what()select()(+mul(430,603)
 
 struct MultiplyOp {
@@ -18,9 +18,28 @@ enum State {
     StSuccessMatch,
 }
 
-fn is_transition_possible(input: &Vec<u8>, idx: usize, state: State) -> (bool, State) {
+struct Stack<T> {
+    elems: Vec<T>,
+}
+
+impl<T> Stack<T> {
+    fn push(&mut self, val: T) {
+        self.elems.push(val);
+    }
+
+    fn pop(&mut self) -> Option<T> {
+        return self.elems.pop();
+    }
+
+    fn last(&self) -> Option<&T> {
+        return self.elems.last();
+    }
+}
+
+fn is_transition_possible(input: &Vec<u8>, idx: usize, states: &mut Stack<State>) -> (bool, State) {
     let next_chr = input[idx + 1];
-    match state {
+    let last_state = states.last().unwrap();
+    match last_state {
         State::StM => {
             if next_chr == b'u' {
                 return (true, State::StU);
@@ -55,7 +74,11 @@ fn is_transition_possible(input: &Vec<u8>, idx: usize, state: State) -> (bool, S
                 return (true, State::StCom);
             }
             if next_chr == b')' {
-                return (true, State::StParClose);
+                for state in &states.elems {
+                    if matches!(state, State::StCom) {
+                        return (true, State::StParClose);
+                    }
+                }
             }
 
             return (false, State::StNum);
@@ -73,18 +96,23 @@ fn is_transition_possible(input: &Vec<u8>, idx: usize, state: State) -> (bool, S
     }
 }
 
-fn try_find_end_index(input: &Vec<u8>, idx: usize, state: &State) -> Result<usize, &'static str> {
-    let result = is_transition_possible(input, idx, state.clone());
+fn try_find_end_index(
+    input: &Vec<u8>,
+    idx: usize,
+    states: &mut Stack<State>,
+) -> Result<usize, &'static str> {
+    let result = is_transition_possible(input, idx, states);
     let is_possible = result.0;
     let target_transition = result.1;
 
-    if (is_possible) & (matches!(state, State::StParClose)) {
+    if (is_possible) & (matches!(states.last().unwrap(), State::StParClose)) {
         // End index found! Success!
         return Ok(idx);
     }
 
     if is_possible {
-        return try_find_end_index(input, idx + 1, &target_transition);
+        states.push(target_transition);
+        return try_find_end_index(input, idx + 1, states);
     }
 
     return Err("Unable to find end index.");
@@ -116,10 +144,16 @@ fn parse_input(input: Vec<u8>) -> Vec<MultiplyOp> {
             continue;
         }
 
-        let state = State::StM;
-        let end_index = try_find_end_index(&input, index, &state);
+        let mut states_vec: Vec<State> = Vec::new();
+        states_vec.push(State::StM);
+        let mut states = Stack { elems: states_vec };
+        let end_index = try_find_end_index(&input, index, &mut states);
         match end_index {
             Ok(idx) => {
+                println!(
+                    "Parsing: {}",
+                    String::from_utf8((&input[(index)..idx]).to_vec()).unwrap()
+                );
                 multipliers.push(parse_multipliers(&input[(index + 4)..idx]));
                 index += 1;
             }
